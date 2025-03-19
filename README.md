@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-This project implements a serverless REST API using AWS CDK to provision necessary AWS resources. The API provides endpoints for managing movie reviews in a DynamoDB table with features including retrieval of reviews for specific movies, filtering by rating, updates, and text translation.
+This project implements a serverless REST API using AWS CDK to provision necessary AWS resources. The API provides endpoints for managing movies in a DynamoDB table with features including retrieval of movies descriptions, filtering by rating, updates, and text translation.
 
 ## Architecture
 
@@ -16,10 +16,20 @@ The application uses a serverless architecture with the following AWS services:
 -   Amazon Translate: For text translation services
 -   AWS IAM: For security and access control
 
-| Method | Endpoint                                               | Description                                                    | Authorization |
-| ------ | ------------------------------------------------------ | -------------------------------------------------------------- | ------------- |
-| GET    | `/movies/{movieId}`                                    | Retrieves movie content by movie ID                            | None          |
-| GET    | `/movies/?Rating=n`                                    | Retrieves filtered movies with rating greater than RatingGiven | None          |
-| GET    | `/movies/{movieId}/overvoew/translation?language=code` | Retrieves a translated version of a movie overview             | None          |
-| POST   | `/movies/movie`                                        | Creates a new movie                                            | API Key       |
-| PUT    | `/movies/{movieId}/`                                   | Updates the text of an existing review                         | API Key       |
+| Method | Endpoint                                               | Description                                                    | Authorization | Completed    |
+| ------ | ------------------------------------------------------ | -------------------------------------------------------------- | ------------- | ------------ |
+| GET    | `/movies/{movieId}`                                    | Retrieves movie content by movie ID                            | None          | ❌<!--✅ --> |
+| GET    | `/movies/?Rating=n`                                    | Retrieves filtered movies with rating greater than RatingGiven | None          | ❌           |
+| GET    | `/movies/{movieId}/overview/translation?language=code` | Retrieves a translated version of a movie overview             | None          | ❌           |
+| POST   | `/movies/movie`                                        | Creates a new movie                                            | API Key       | ❌           |
+| PUT    | `/movies/{movieId}/`                                   | Updates the text of an existing review                         | API Key       | ❌           |
+
+## Project Todo Itemised List 📝
+
+| Task                            | Description                                       | Status | Date of Completion |
+| ------------------------------- | ------------------------------------------------- | ------ | ------------------ |
+| Create DynamoDB and seeding     | Set up a DynamoDB table and add initial seed data | ✅     | Tues 18th March    |
+| Create basic Lambda functions   | Develop core Lambda functions for API operations  | ❌     | -                  |
+| Implement a custom construct    | Create reusable infrastructure components         | ❌     | -                  |
+| Add Lambda layers               | Optimize code reuse by using Lambda layers        | ❌     | -                  |
+| Build a multi-stack application | Organize infrastructure into multiple CDK stacks  | ❌     | -                  |
