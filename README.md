@@ -16,13 +16,13 @@ The application uses a serverless architecture with the following AWS services:
 -   Amazon Translate: For text translation services
 -   AWS IAM: For security and access control
 
-| Method | Endpoint                                               | Description                                                    | Authorization | Completed    |
-| ------ | ------------------------------------------------------ | -------------------------------------------------------------- | ------------- | ------------ |
-| GET    | `/movies/{movieId}`                                    | Retrieves movie content by movie ID                            | None          | ❌<!--✅ --> |
-| GET    | `/movies/?Rating=n`                                    | Retrieves filtered movies with rating greater than RatingGiven | None          | ❌           |
-| GET    | `/movies/{movieId}/overview/translation?language=code` | Retrieves a translated version of a movie overview             | None          | ❌           |
-| POST   | `/movies/movie`                                        | Creates a new movie                                            | API Key       | ❌           |
-| PUT    | `/movies/{movieId}/`                                   | Updates the text of an existing review                         | API Key       | ❌           |
+| Method | Endpoint                                               | Description                                        | Authorization | Completed    |
+| ------ | ------------------------------------------------------ | -------------------------------------------------- | ------------- | ------------ |
+| GET    | `/movies/{movieId}`                                    | Retrieves movie content by movie ID                | None          | ❌<!--✅ --> |
+| GET    | `/movies/{movieId}?title=true&overview=true`           | Retrieves filtered movies with title and overview  | None          | ❌           |
+| GET    | `/movies/{movieId}/overview/translation?language=code` | Retrieves a translated version of a movie overview | None          | ❌           |
+| POST   | `/movies/movie`                                        | Creates a new movie                                | API Key       | ❌           |
+| PUT    | `/movies/{movieId}/`                                   | Updates the text of an existing review             | API Key       | ❌           |
 
 ## Project Todo Itemised List 📝
 
