@@ -87,8 +87,8 @@ export class DsAssignmentOneStack extends cdk.Stack {
         const moviesEndpoint = api.root.addResource("movies");
 
         // Params
-        const specificMovieEndpoint = moviesEndpoint.addResource("{movieId}");
-        specificMovieEndpoint.addMethod(
+        const MovieEndpoint = moviesEndpoint.addResource("{movieId}");
+        MovieEndpoint.addMethod(
             "GET",
             new apig.LambdaIntegration(getMovieByIdFn, { proxy: true })
         );

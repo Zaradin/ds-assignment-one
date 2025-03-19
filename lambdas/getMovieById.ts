@@ -17,7 +17,6 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
         const movieId = pathParameters?.movieId
             ? parseInt(pathParameters.movieId)
             : undefined;
-        const includeCast = queryParameters?.cast === "true";
 
         if (!movieId) {
             return {
@@ -48,36 +47,38 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
             };
         }
 
-        let responseBody = {
-            data: movieResponse.Item,
-        };
+        const movieData = movieResponse.Item;
+        let responseData: any;
 
-        // If cast=true, get the cast information
-        if (includeCast) {
-            try {
-                const castQueryInput: QueryCommandInput = {
-                    TableName: process.env.CAST_TABLE_NAME,
-                    KeyConditionExpression: "movieId = :m",
-                    ExpressionAttributeValues: {
-                        ":m": movieId,
-                    },
-                };
+        // Check if specific fields are requested via query parameters
+        const hasFilters = Object.keys(queryParameters).length > 0;
 
-                const castCommand = new QueryCommand(castQueryInput);
-                const castResponse = await ddbDocClient.send(castCommand);
+        if (hasFilters) {
+            // Filter the movie data based on query parameters
+            const filteredData: Record<string, any> = {};
 
-                // Add cast to the response
-                responseBody = {
-                    data: {
-                        ...movieResponse.Item,
-                        cast: castResponse.Items || [],
-                    },
-                };
-            } catch (castError) {
-                console.log("Error fetching cast:", JSON.stringify(castError));
-                // Continue without cast if there's an error
-            }
+            // Always include the ID
+            filteredData.id = movieData.id;
+
+            // Add requested fields
+            Object.keys(queryParameters).forEach((param) => {
+                const isRequested =
+                    queryParameters[param]?.toLowerCase() === "true";
+
+                if (isRequested && movieData.hasOwnProperty(param)) {
+                    filteredData[param] = movieData[param];
+                }
+            });
+
+            responseData = filteredData;
+        } else {
+            // If no filters, return the full movie data
+            responseData = movieData;
         }
+
+        let responseBody = {
+            data: responseData,
+        };
 
         // Return Response
         return {
