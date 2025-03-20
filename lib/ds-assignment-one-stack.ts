@@ -21,6 +21,21 @@ export class DsAssignmentOneStack extends cdk.Stack {
             tableName: "Patients",
         });
 
+        // Translations Table to persisit translations
+        const translationsTable = new dynamodb.Table(
+            this,
+            "TranslationsTable",
+            {
+                billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+                partitionKey: {
+                    name: "id",
+                    type: dynamodb.AttributeType.STRING,
+                },
+                removalPolicy: cdk.RemovalPolicy.DESTROY,
+                tableName: "Translations",
+            }
+        );
+
         // Table seeding using the patients seeding file
         new custom.AwsCustomResource(this, "patientsddbInitData", {
             onCreate: {
@@ -115,7 +130,8 @@ export class DsAssignmentOneStack extends cdk.Stack {
                 timeout: cdk.Duration.seconds(15),
                 memorySize: 128,
                 environment: {
-                    TABLE_NAME: patientsTable.tableName,
+                    PATIENTS_TABLE: patientsTable.tableName,
+                    TRANSLATIONS_TABLE: translationsTable.tableName,
                     REGION: "eu-west-1",
                 },
             }
@@ -127,6 +143,9 @@ export class DsAssignmentOneStack extends cdk.Stack {
         patientsTable.grantReadData(getAllPatientsFn);
         patientsTable.grantReadWriteData(updatePatientFn);
         patientsTable.grantReadData(translateDiagnosisFn);
+
+        // Grant permissions to the translations table
+        translationsTable.grantReadWriteData(translateDiagnosisFn);
 
         // Grant AWS Translate permissions to the Lambda function
         translateDiagnosisFn.addToRolePolicy(
@@ -218,10 +237,12 @@ export class DsAssignmentOneStack extends cdk.Stack {
                 apiKeyRequired: true,
             }
         );
-
-        // Add output for the API Gateway URL | it already gets outputed but could manually print different endpoints in the future
-        // new cdk.CfnOutput(this, "API Gateway URLs", {
-        //     value: api.url,
-        // });
     }
+    // Add output for the API Gateway URL | it already gets outputed but could manually print different endpoints in the future
+
+    // new cdk.CfnOutput(this, "API Gateway URLs", {
+
+    //     value: api.url,
+
+    // });
 }
