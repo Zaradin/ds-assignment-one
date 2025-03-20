@@ -151,7 +151,7 @@ export class DsAssignmentOneStack extends cdk.Stack {
             new apig.LambdaIntegration(getAllPatientsFn, { proxy: true })
         );
 
-        // This POST endpoint needs to use the API key
+        // This POST endpoint alsi needs to use the API key
         patientsEndpoint.addMethod(
             "POST",
             new apig.LambdaIntegration(addNewPatientFn, { proxy: true }),
