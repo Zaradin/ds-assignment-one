@@ -1,5 +1,4 @@
 import { APIGatewayProxyHandlerV2 } from "aws-lambda";
-
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, ScanCommand } from "@aws-sdk/lib-dynamodb";
 
@@ -15,15 +14,17 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
                 TableName: process.env.TABLE_NAME,
             })
         );
+
         if (!commandOutput.Items) {
             return {
                 statusCode: 404,
                 headers: {
                     "content-type": "application/json",
                 },
-                body: JSON.stringify({ Message: "Invalid movie Id" }),
+                body: JSON.stringify({ message: "No patients found" }),
             };
         }
+
         const body = {
             data: commandOutput.Items,
         };
@@ -43,7 +44,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
             headers: {
                 "content-type": "application/json",
             },
-            body: JSON.stringify({ error }),
+            body: JSON.stringify({ error: error.message }),
         };
     }
 };

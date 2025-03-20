@@ -5,7 +5,7 @@ import Ajv from "ajv";
 import schema from "../shared/types.schema.json";
 
 const ajv = new Ajv();
-const isValidBodyParams = ajv.compile(schema.definitions["Movie"] || {});
+const isValidBodyParams = ajv.compile(schema.definitions["Patient"] || {});
 
 const ddbDocClient = createDDbDocClient();
 
@@ -13,9 +13,10 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
     try {
         console.log("[EVENT]", JSON.stringify(event));
         const body = event.body ? JSON.parse(event.body) : undefined;
+
         if (!body) {
             return {
-                statusCode: 500,
+                statusCode: 400,
                 headers: {
                     "content-type": "application/json",
                 },
@@ -25,13 +26,13 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
 
         if (!isValidBodyParams(body)) {
             return {
-                statusCode: 500,
+                statusCode: 400,
                 headers: {
                     "content-type": "application/json",
                 },
                 body: JSON.stringify({
-                    message: `Incorrect type. Must match the Movie schema`,
-                    schema: schema.definitions["Movie"],
+                    message: `Incorrect type. Must match the Patient schema`,
+                    schema: schema.definitions["Patient"],
                 }),
             };
         }
@@ -42,12 +43,13 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
                 Item: body,
             })
         );
+
         return {
             statusCode: 201,
             headers: {
                 "content-type": "application/json",
             },
-            body: JSON.stringify({ message: "Movie added" }),
+            body: JSON.stringify({ message: "Patient added successfully" }),
         };
     } catch (error: any) {
         console.log(JSON.stringify(error));
@@ -56,7 +58,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
             headers: {
                 "content-type": "application/json",
             },
-            body: JSON.stringify({ error }),
+            body: JSON.stringify({ error: error.message }),
         };
     }
 };

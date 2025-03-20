@@ -1,11 +1,6 @@
 import { APIGatewayProxyHandlerV2 } from "aws-lambda";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import {
-    DynamoDBDocumentClient,
-    GetCommand,
-    QueryCommand,
-    QueryCommandInput,
-} from "@aws-sdk/lib-dynamodb";
+import { DynamoDBDocumentClient, GetCommand } from "@aws-sdk/lib-dynamodb";
 
 const ddbDocClient = createDDbDocClient();
 
@@ -14,66 +9,66 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
         console.log("[EVENT]", JSON.stringify(event));
         const pathParameters = event?.pathParameters;
         const queryParameters = event?.queryStringParameters || {};
-        const movieId = pathParameters?.movieId
-            ? parseInt(pathParameters.movieId)
+        const patientId = pathParameters?.patientId
+            ? parseInt(pathParameters.patientId)
             : undefined;
 
-        if (!movieId) {
+        if (!patientId) {
             return {
-                statusCode: 404,
+                statusCode: 400,
                 headers: {
                     "content-type": "application/json",
                 },
-                body: JSON.stringify({ Message: "Missing movie Id" }),
+                body: JSON.stringify({ message: "Missing patient ID" }),
             };
         }
 
-        // Get movie metadata
-        const movieCommand = new GetCommand({
+        // Get patient data
+        const patientCommand = new GetCommand({
             TableName: process.env.TABLE_NAME,
-            Key: { id: movieId },
+            Key: { id: patientId },
         });
 
-        const movieResponse = await ddbDocClient.send(movieCommand);
-        console.log("GetCommand response: ", movieResponse);
+        const patientResponse = await ddbDocClient.send(patientCommand);
+        console.log("GetCommand response: ", patientResponse);
 
-        if (!movieResponse.Item) {
+        if (!patientResponse.Item) {
             return {
                 statusCode: 404,
                 headers: {
                     "content-type": "application/json",
                 },
-                body: JSON.stringify({ Message: "Invalid movie Id" }),
+                body: JSON.stringify({ message: "Patient not found" }),
             };
         }
 
-        const movieData = movieResponse.Item;
+        const patientData = patientResponse.Item;
         let responseData: any;
 
         // Check if specific fields are requested via query parameters
         const hasFilters = Object.keys(queryParameters).length > 0;
 
         if (hasFilters) {
-            // Filter the movie data based on query parameters
+            // Filter the patient data based on query parameters
             const filteredData: Record<string, any> = {};
 
             // Always include the ID
-            filteredData.id = movieData.id;
+            filteredData.id = patientData.id;
 
             // Add requested fields
             Object.keys(queryParameters).forEach((param) => {
                 const isRequested =
                     queryParameters[param]?.toLowerCase() === "true";
 
-                if (isRequested && movieData.hasOwnProperty(param)) {
-                    filteredData[param] = movieData[param];
+                if (isRequested && patientData.hasOwnProperty(param)) {
+                    filteredData[param] = patientData[param];
                 }
             });
 
             responseData = filteredData;
         } else {
-            // If no filters, return the full movie data
-            responseData = movieData;
+            // If no filters, return the full patient data
+            responseData = patientData;
         }
 
         let responseBody = {
@@ -95,7 +90,7 @@ export const handler: APIGatewayProxyHandlerV2 = async (event, context) => {
             headers: {
                 "content-type": "application/json",
             },
-            body: JSON.stringify({ error }),
+            body: JSON.stringify({ error: error.message }),
         };
     }
 };

@@ -6,7 +6,7 @@ import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 // import * as sqs from 'aws-cdk-lib/aws-sqs';
 import * as custom from "aws-cdk-lib/custom-resources";
 import { generateBatch } from "../shared/util";
-import { movies } from "../seed/movies";
+import { patients } from "../seed/patients";
 import * as apig from "aws-cdk-lib/aws-apigateway";
 
 export class DsAssignmentOneStack extends cdk.Stack {
@@ -14,89 +14,89 @@ export class DsAssignmentOneStack extends cdk.Stack {
         super(scope, id, props);
 
         // Tables
-        const moviesTable = new dynamodb.Table(this, "MoviesTable", {
+        const patientsTable = new dynamodb.Table(this, "PatientsTable", {
             billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
             partitionKey: { name: "id", type: dynamodb.AttributeType.NUMBER },
             removalPolicy: cdk.RemovalPolicy.DESTROY,
-            tableName: "Movies",
+            tableName: "Patients",
         });
 
-        // Table seeding
-        new custom.AwsCustomResource(this, "moviesddbInitData", {
+        // Table seeding using the patients seeding file
+        new custom.AwsCustomResource(this, "patientsddbInitData", {
             onCreate: {
                 service: "DynamoDB",
                 action: "batchWriteItem",
                 parameters: {
                     RequestItems: {
-                        [moviesTable.tableName]: generateBatch(movies),
+                        [patientsTable.tableName]: generateBatch(patients),
                     },
                 },
-                physicalResourceId:
-                    custom.PhysicalResourceId.of("moviesddbInitData"), //.of(Date.now().toString()),
+                physicalResourceId: custom.PhysicalResourceId.of(
+                    "patientsddbInitData"
+                ),
             },
             policy: custom.AwsCustomResourcePolicy.fromSdkCalls({
-                resources: [moviesTable.tableArn],
+                resources: [patientsTable.tableArn],
             }),
         });
 
-        // Lambdas Functions
-
-        const getMovieByIdFn = new lambdanode.NodejsFunction(
+        // Lambda Functions
+        const getPatientByIdFn = new lambdanode.NodejsFunction(
             this,
-            "GetMovieByIdFn",
+            "GetPatientByIdFn",
             {
                 architecture: lambda.Architecture.ARM_64,
                 runtime: lambda.Runtime.NODEJS_18_X,
-                entry: `${__dirname}/../lambdas/getMovieById.ts`,
+                entry: `${__dirname}/../lambdas/getPatientById.ts`,
                 timeout: cdk.Duration.seconds(10),
                 memorySize: 128,
                 environment: {
-                    TABLE_NAME: moviesTable.tableName,
+                    TABLE_NAME: patientsTable.tableName,
                     REGION: "eu-west-1",
                 },
             }
         );
 
-        const addnewMovieFn = new lambdanode.NodejsFunction(
+        const addNewPatientFn = new lambdanode.NodejsFunction(
             this,
-            "Add New Movie Fn",
+            "AddNewPatientFn",
             {
                 architecture: lambda.Architecture.ARM_64,
                 runtime: lambda.Runtime.NODEJS_22_X,
-                entry: `${__dirname}/../lambdas/addMovie.ts`,
+                entry: `${__dirname}/../lambdas/addPatient.ts`,
                 timeout: cdk.Duration.seconds(10),
                 memorySize: 128,
                 environment: {
-                    TABLE_NAME: moviesTable.tableName,
+                    TABLE_NAME: patientsTable.tableName,
                     REGION: "eu-west-1",
                 },
             }
         );
 
-        const getAllMoviesFn = new lambdanode.NodejsFunction(
+        const getAllPatientsFn = new lambdanode.NodejsFunction(
             this,
-            "GetAllMoviesFn",
+            "GetAllPatientsFn",
             {
                 architecture: lambda.Architecture.ARM_64,
                 runtime: lambda.Runtime.NODEJS_18_X,
-                entry: `${__dirname}/../lambdas/getAllMovies.ts`,
+                entry: `${__dirname}/../lambdas/getAllPatients.ts`,
                 timeout: cdk.Duration.seconds(10),
                 memorySize: 128,
                 environment: {
-                    TABLE_NAME: moviesTable.tableName,
+                    TABLE_NAME: patientsTable.tableName,
                     REGION: "eu-west-1",
                 },
             }
         );
 
         // Permissions
-        moviesTable.grantReadData(getMovieByIdFn);
-        moviesTable.grantReadWriteData(addnewMovieFn);
-        moviesTable.grantReadData(getAllMoviesFn);
+        patientsTable.grantReadData(getPatientByIdFn);
+        patientsTable.grantReadWriteData(addNewPatientFn);
+        patientsTable.grantReadData(getAllPatientsFn);
 
         // REST API Implementation
         const api = new apig.RestApi(this, "RestAPI", {
-            description: "Movies App API",
+            description: "Patient Management API",
             deployOptions: {
                 stageName: "dev",
             },
@@ -116,14 +116,14 @@ export class DsAssignmentOneStack extends cdk.Stack {
         });
 
         // Create an API key
-        const apiKey = new apig.ApiKey(this, "MoviesAPIKey", {
-            apiKeyName: "Movies-API-Key",
-            description: "API Key for Movies API",
+        const apiKey = new apig.ApiKey(this, "PatientsAPIKey", {
+            apiKeyName: "Patients-API-Key",
+            description: "API Key for Patient Management API",
         });
 
         // Create a usage plan
-        const usagePlan = new apig.UsagePlan(this, "MoviesAPIUsagePlan", {
-            name: "Movies API Usage Plan",
+        const usagePlan = new apig.UsagePlan(this, "PatientsAPIUsagePlan", {
+            name: "Patient Management API Usage Plan",
             apiStages: [
                 {
                     api: api,
@@ -132,30 +132,29 @@ export class DsAssignmentOneStack extends cdk.Stack {
             ],
         });
 
-        // HERE -> I Add the API key to the usage plan that I created above
+        // Add the API key to the usage plan
         usagePlan.addApiKey(apiKey);
 
         // ENDPOINTS
-
         // Top level endpoint
-        const moviesEndpoint = api.root.addResource("movies");
+        const patientsEndpoint = api.root.addResource("patients");
 
         // Params
-        const MovieEndpoint = moviesEndpoint.addResource("{movieId}");
-        MovieEndpoint.addMethod(
+        const patientEndpoint = patientsEndpoint.addResource("{patientId}");
+        patientEndpoint.addMethod(
             "GET",
-            new apig.LambdaIntegration(getMovieByIdFn, { proxy: true })
+            new apig.LambdaIntegration(getPatientByIdFn, { proxy: true })
         );
 
-        moviesEndpoint.addMethod(
+        patientsEndpoint.addMethod(
             "GET",
-            new apig.LambdaIntegration(getAllMoviesFn, { proxy: true })
+            new apig.LambdaIntegration(getAllPatientsFn, { proxy: true })
         );
 
         // This POST endpoint needs to use the API key
-        moviesEndpoint.addMethod(
+        patientsEndpoint.addMethod(
             "POST",
-            new apig.LambdaIntegration(addnewMovieFn, { proxy: true }),
+            new apig.LambdaIntegration(addNewPatientFn, { proxy: true }),
             {
                 apiKeyRequired: true,
             }
