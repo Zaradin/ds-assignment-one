@@ -89,10 +89,27 @@ export class DsAssignmentOneStack extends cdk.Stack {
             }
         );
 
+        const updatePatientFn = new lambdanode.NodejsFunction(
+            this,
+            "UpdatePatientFn",
+            {
+                architecture: lambda.Architecture.ARM_64,
+                runtime: lambda.Runtime.NODEJS_18_X,
+                entry: `${__dirname}/../lambdas/updatePatient.ts`,
+                timeout: cdk.Duration.seconds(10),
+                memorySize: 128,
+                environment: {
+                    TABLE_NAME: patientsTable.tableName,
+                    REGION: "eu-west-1",
+                },
+            }
+        );
+
         // Permissions
         patientsTable.grantReadData(getPatientByIdFn);
         patientsTable.grantReadWriteData(addNewPatientFn);
         patientsTable.grantReadData(getAllPatientsFn);
+        patientsTable.grantReadWriteData(updatePatientFn);
 
         // REST API Implementation
         const api = new apig.RestApi(this, "RestAPI", {
@@ -144,6 +161,15 @@ export class DsAssignmentOneStack extends cdk.Stack {
         patientEndpoint.addMethod(
             "GET",
             new apig.LambdaIntegration(getPatientByIdFn, { proxy: true })
+        );
+
+        // Uses the API Gateway Key
+        patientEndpoint.addMethod(
+            "PUT",
+            new apig.LambdaIntegration(updatePatientFn, { proxy: true }),
+            {
+                apiKeyRequired: true,
+            }
         );
 
         patientsEndpoint.addMethod(
