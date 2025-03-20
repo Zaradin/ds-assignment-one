@@ -73,9 +73,26 @@ export class DsAssignmentOneStack extends cdk.Stack {
             }
         );
 
+        const getAllMoviesFn = new lambdanode.NodejsFunction(
+            this,
+            "GetAllMoviesFn",
+            {
+                architecture: lambda.Architecture.ARM_64,
+                runtime: lambda.Runtime.NODEJS_18_X,
+                entry: `${__dirname}/../lambdas/getAllMovies.ts`,
+                timeout: cdk.Duration.seconds(10),
+                memorySize: 128,
+                environment: {
+                    TABLE_NAME: moviesTable.tableName,
+                    REGION: "eu-west-1",
+                },
+            }
+        );
+
         // Permissions
         moviesTable.grantReadData(getMovieByIdFn);
         moviesTable.grantReadWriteData(addnewMovieFn);
+        moviesTable.grantReadData(getAllMoviesFn);
 
         // REST API Implementation
         const api = new apig.RestApi(this, "RestAPI", {
@@ -108,6 +125,11 @@ export class DsAssignmentOneStack extends cdk.Stack {
         MovieEndpoint.addMethod(
             "GET",
             new apig.LambdaIntegration(getMovieByIdFn, { proxy: true })
+        );
+
+        moviesEndpoint.addMethod(
+            "GET",
+            new apig.LambdaIntegration(getAllMoviesFn, { proxy: true })
         );
 
         moviesEndpoint.addMethod(
