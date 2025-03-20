@@ -105,11 +105,37 @@ export class DsAssignmentOneStack extends cdk.Stack {
             }
         );
 
+        const translateDiagnosisFn = new lambdanode.NodejsFunction(
+            this,
+            "TranslateDiagnosisFn",
+            {
+                architecture: lambda.Architecture.ARM_64,
+                runtime: lambda.Runtime.NODEJS_18_X,
+                entry: `${__dirname}/../lambdas/translatePatientDiagnosisDescription.ts`,
+                timeout: cdk.Duration.seconds(15),
+                memorySize: 128,
+                environment: {
+                    TABLE_NAME: patientsTable.tableName,
+                    REGION: "eu-west-1",
+                },
+            }
+        );
+
         // Permissions
         patientsTable.grantReadData(getPatientByIdFn);
         patientsTable.grantReadWriteData(addNewPatientFn);
         patientsTable.grantReadData(getAllPatientsFn);
         patientsTable.grantReadWriteData(updatePatientFn);
+        patientsTable.grantReadData(translateDiagnosisFn);
+
+        // Grant AWS Translate permissions to the Lambda function
+        translateDiagnosisFn.addToRolePolicy(
+            new cdk.aws_iam.PolicyStatement({
+                actions: ["translate:TranslateText"],
+                resources: ["*"],
+                effect: cdk.aws_iam.Effect.ALLOW,
+            })
+        );
 
         // REST API Implementation
         const api = new apig.RestApi(this, "RestAPI", {
@@ -170,6 +196,13 @@ export class DsAssignmentOneStack extends cdk.Stack {
             {
                 apiKeyRequired: true,
             }
+        );
+
+        // Add a new resource for translation endpoint (on the higher level patient endpoint)
+        const translateEndpoint = patientEndpoint.addResource("translate");
+        translateEndpoint.addMethod(
+            "GET",
+            new apig.LambdaIntegration(translateDiagnosisFn, { proxy: true })
         );
 
         patientsEndpoint.addMethod(
