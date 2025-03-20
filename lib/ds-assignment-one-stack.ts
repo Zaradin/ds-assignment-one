@@ -96,7 +96,7 @@ export class DsAssignmentOneStack extends cdk.Stack {
 
         // REST API Implementation
         const api = new apig.RestApi(this, "RestAPI", {
-            description: "demo api",
+            description: "Movies App API",
             deployOptions: {
                 stageName: "dev",
             },
@@ -115,6 +115,26 @@ export class DsAssignmentOneStack extends cdk.Stack {
             },
         });
 
+        // Create an API key
+        const apiKey = new apig.ApiKey(this, "MoviesAPIKey", {
+            apiKeyName: "Movies-API-Key",
+            description: "API Key for Movies API",
+        });
+
+        // Create a usage plan
+        const usagePlan = new apig.UsagePlan(this, "MoviesAPIUsagePlan", {
+            name: "Movies API Usage Plan",
+            apiStages: [
+                {
+                    api: api,
+                    stage: api.deploymentStage,
+                },
+            ],
+        });
+
+        // HERE -> I Add the API key to the usage plan that I created above
+        usagePlan.addApiKey(apiKey);
+
         // ENDPOINTS
 
         // Top level endpoint
@@ -132,9 +152,13 @@ export class DsAssignmentOneStack extends cdk.Stack {
             new apig.LambdaIntegration(getAllMoviesFn, { proxy: true })
         );
 
+        // This POST endpoint needs to use the API key
         moviesEndpoint.addMethod(
             "POST",
-            new apig.LambdaIntegration(addnewMovieFn, { proxy: true })
+            new apig.LambdaIntegration(addnewMovieFn, { proxy: true }),
+            {
+                apiKeyRequired: true,
+            }
         );
 
         // Add output for the API Gateway URL | it already gets outputed but could manually print different endpoints in the future
