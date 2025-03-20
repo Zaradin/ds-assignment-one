@@ -57,8 +57,25 @@ export class DsAssignmentOneStack extends cdk.Stack {
             }
         );
 
+        const addnewMovieFn = new lambdanode.NodejsFunction(
+            this,
+            "Add New Movie Fn",
+            {
+                architecture: lambda.Architecture.ARM_64,
+                runtime: lambda.Runtime.NODEJS_22_X,
+                entry: `${__dirname}/../lambdas/addMovie.ts`,
+                timeout: cdk.Duration.seconds(10),
+                memorySize: 128,
+                environment: {
+                    TABLE_NAME: moviesTable.tableName,
+                    REGION: "eu-west-1",
+                },
+            }
+        );
+
         // Permissions
         moviesTable.grantReadData(getMovieByIdFn);
+        moviesTable.grantReadWriteData(addnewMovieFn);
 
         // REST API Implementation
         const api = new apig.RestApi(this, "RestAPI", {
@@ -91,6 +108,11 @@ export class DsAssignmentOneStack extends cdk.Stack {
         MovieEndpoint.addMethod(
             "GET",
             new apig.LambdaIntegration(getMovieByIdFn, { proxy: true })
+        );
+
+        moviesEndpoint.addMethod(
+            "POST",
+            new apig.LambdaIntegration(addnewMovieFn, { proxy: true })
         );
 
         // Add output for the API Gateway URL | it already gets outputed but could manually print different endpoints in the future
