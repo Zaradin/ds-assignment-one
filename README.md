@@ -5,6 +5,8 @@ This was the main premise in building the basic API functions.
 
 Context: Patients
 
+<img src="./images/DS-assignment-one.png" width="650" height="480" />
+
 Table item attributes:
 
 -   id - number (Partition key)
